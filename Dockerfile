@@ -14,4 +14,4 @@ FROM alpine:3.7
 
 COPY --from=build /draw-web/bin/draw-web /
 COPY template /template
-CMD ["/draw-web"]
+CMD ["/draw-web", "-alsologtostderr"]

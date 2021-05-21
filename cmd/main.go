@@ -5,12 +5,13 @@
 package main
 
 import (
-	"archive/zip"
 	"encoding/csv"
+	"flag"
 	"fmt"
+	"github.com/alexmullins/zip"
+	"github.com/golang/glog"
 	"html/template"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -31,18 +32,18 @@ func (p *Page) save() error {
 	// todo: send mail
 
 	for _, v := range p.Password {
-		log.Printf(v)
+		glog.Info(v)
 	}
 
 	for i, v := range p.Committer {
-		log.Printf("%d,%s", i+1, v)
+		glog.Infof("%d,%s", i+1, v)
 	}
 
 	filename := p.Title + ".csv"
 
 	file, err := os.Create(filename)
 	if err != nil {
-		log.Println("open file is failed, err: ", err)
+		glog.Infof("open file is failed, err: %s", err.Error())
 	}
 	defer file.Close()
 
@@ -54,6 +55,12 @@ func (p *Page) save() error {
 	}
 
 	w.Flush()
+
+	fn := fmt.Sprintf("/tmp/%s.zip", p.Title)
+	e := Zip(fn, p.Title+".csv", p.Password[0]+p.Password[1])
+	if e != nil {
+		glog.Info(e.Error())
+	}
 
 	return nil
 }
@@ -105,11 +112,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request, title string) {
 
 	file := fmt.Sprintf("/tmp/%s.zip", title)
 
-	e := Zip(file, title+".csv")
-	if e != nil {
-		log.Printf(e.Error())
-	}
-
 	nn := fmt.Sprintf("%s.zip", title)
 	w.Header().Set("Content-Disposition", "attachment; filename="+nn)
 	w.Header().Set("Content-Type", "application/zip")
@@ -140,15 +142,15 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 }
 
 func main() {
-
+	flag.Parse()
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit", editHandler)
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 	http.HandleFunc("/download/", makeHandler(downloadHandler))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	glog.Info(http.ListenAndServe(":8080", nil))
 }
 
-func Zip(dst, src string) (err error) {
+func Zip(dst, src, pw string) (err error) {
 	// 创建准备写入的文件
 	fw, err := os.Create(dst)
 	defer fw.Close()
@@ -161,7 +163,7 @@ func Zip(dst, src string) (err error) {
 	defer func() {
 		// 检测一下是否成功关闭
 		if err := zw.Close(); err != nil {
-			log.Fatalln(err)
+			glog.Info(err.Error())
 		}
 	}()
 
@@ -183,6 +185,10 @@ func Zip(dst, src string) (err error) {
 		// 这步开始没有加，会发现解压的时候说它不是个目录
 		if fi.IsDir() {
 			fh.Name += "/"
+		}
+
+		if pw != "" {
+			fh.SetPassword(pw)
 		}
 
 		// 写入文件信息，并返回一个 Write 结构
@@ -210,7 +216,7 @@ func Zip(dst, src string) (err error) {
 			return
 		}
 		// 输出压缩的内容
-		log.Printf("Create zip file: %s", dst)
+		glog.Infof("Create zip file: %s", dst)
 
 		return nil
 	})

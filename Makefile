@@ -9,7 +9,7 @@ build:
 	-o bin/${PROJ_NAME} cmd/main.go
 
 run:
-	bin/${PROJ_NAME}
+	bin/${PROJ_NAME} -alsologtostderr
 
 build-img:
 	docker build -t $(IMAGE) -f ./Dockerfile .
@@ -24,4 +24,5 @@ run-in-docker:
 	docker run --rm -ti -p 8080:8080 $(REGISTRY)/$(PROJ_NAME):$(TAG)
 
 clean:
+	rm *.csv
 	rm -rf bin/
