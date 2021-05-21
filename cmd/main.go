@@ -7,7 +7,6 @@ package main
 import (
 	"archive/zip"
 	"encoding/csv"
-	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -43,7 +42,7 @@ func (p *Page) save() error {
 
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Println("open file is failed, err: ", err)
+		log.Println("open file is failed, err: ", err)
 	}
 	defer file.Close()
 
@@ -64,8 +63,9 @@ func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	renderTemplate(w, "view", &p)
 }
 
-func editHandler(w http.ResponseWriter, r *http.Request, title string) {
+func editHandler(w http.ResponseWriter, r *http.Request) {
 
+	title := fmt.Sprintf("%d", time.Now().Unix())
 	p := &Page{Title: title}
 	renderTemplate(w, "edit", p)
 }
@@ -103,15 +103,14 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 
 func downloadHandler(w http.ResponseWriter, r *http.Request, title string) {
 
-	ts := time.Now().Unix()
-	file := fmt.Sprintf("/tmp/%s-%d.zip", title, ts)
+	file := fmt.Sprintf("/tmp/%s.zip", title)
 
 	e := Zip(file, title+".csv")
 	if e != nil {
-		fmt.Printf(e.Error())
+		log.Printf(e.Error())
 	}
 
-	nn := fmt.Sprintf("%s-%d.zip", title, ts)
+	nn := fmt.Sprintf("%s.zip", title)
 	w.Header().Set("Content-Disposition", "attachment; filename="+nn)
 	w.Header().Set("Content-Type", "application/zip")
 
@@ -141,10 +140,9 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 }
 
 func main() {
-	flag.Parse()
 
 	http.HandleFunc("/view/", makeHandler(viewHandler))
-	http.HandleFunc("/edit/", makeHandler(editHandler))
+	http.HandleFunc("/edit", editHandler)
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 	http.HandleFunc("/download/", makeHandler(downloadHandler))
 	log.Fatal(http.ListenAndServe(":8080", nil))
