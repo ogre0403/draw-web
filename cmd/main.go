@@ -6,13 +6,13 @@ package main
 
 import (
 	"archive/zip"
+	"encoding/csv"
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,44 +22,76 @@ import (
 )
 
 type Page struct {
-	Title string
-	Body  []byte
+	Title     string
+	Committer []string
+	Password  []string
 }
 
 func (p *Page) save() error {
-	filename := p.Title + ".txt"
-	return ioutil.WriteFile(filename, p.Body, 0600)
-}
 
-func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
-	body, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
+	// todo: send mail
+
+	for _, v := range p.Password {
+		log.Printf(v)
 	}
-	return &Page{Title: title, Body: body}, nil
+
+	for i, v := range p.Committer {
+		log.Printf("%d,%s", i+1, v)
+	}
+
+	filename := p.Title + ".csv"
+
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Println("open file is failed, err: ", err)
+	}
+	defer file.Close()
+
+	w := csv.NewWriter(file)
+	w.Write([]string{"number", "mail"})
+	for i, v := range p.Committer {
+		r := []string{fmt.Sprintf("%d", i+1), v}
+		w.Write(r)
+	}
+
+	w.Flush()
+
+	return nil
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
-	p, err := loadPage(title)
-	if err != nil {
-		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
-		return
-	}
-	renderTemplate(w, "view", p)
+	p := Page{Title: title}
+	renderTemplate(w, "view", &p)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request, title string) {
-	p, err := loadPage(title)
-	if err != nil {
-		p = &Page{Title: title}
-	}
+
+	p := &Page{Title: title}
 	renderTemplate(w, "edit", p)
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
-	body := r.FormValue("body")
-	p := &Page{Title: title, Body: []byte(body)}
+	p := &Page{Title: title, Committer: []string{}}
+
+	for i := 0; i < 9; i++ {
+		c := r.FormValue(fmt.Sprintf("committer-%d", i+1))
+		p.Committer = append(p.Committer, c)
+	}
+	for i := 0; i < 2; i++ {
+		c := r.FormValue(fmt.Sprintf("password-%d", i+1))
+		p.Password = append(p.Password, c)
+	}
+
+	l := len(p.Committer) - 1
+	rand.Seed(time.Now().UTC().UnixNano())
+	for i := 0; i <= l; i++ {
+		n := rand.Intn(l)
+		// swap
+		x := p.Committer[i]
+		p.Committer[i] = p.Committer[n]
+		p.Committer[n] = x
+	}
+
 	err := p.save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -74,7 +106,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request, title string) {
 	ts := time.Now().Unix()
 	file := fmt.Sprintf("/tmp/%s-%d.zip", title, ts)
 
-	e := Zip(file, title+".txt")
+	e := Zip(file, title+".csv")
 	if e != nil {
 		fmt.Printf(e.Error())
 	}
@@ -180,7 +212,7 @@ func Zip(dst, src string) (err error) {
 			return
 		}
 		// 输出压缩的内容
-		glog.Infof("Create zip file: %s", dst)
+		log.Printf("Create zip file: %s", dst)
 
 		return nil
 	})

@@ -1,6 +1,75 @@
 <h1>Editing {{.Title}}</h1>
 
 <form action="/save/{{.Title}}" method="POST">
-<div><textarea name="body" rows="20" cols="80">{{printf "%s" .Body}}</textarea></div>
+
+    <div>
+        <label>委員1:</label>
+        <label>XXX:</label>
+        <input name="committer-1" value="ogre0403+1@gmail.com" readonly>
+    </div>
+
+    <div>
+        <label>委員2:</label>
+        <label>YYY:</label>
+        <input name="committer-2" value="ogre0403+2@gmail.com" readonly>
+    </div>
+
+    <div>
+        <label>委員3:</label>
+        <label>AAA:</label>
+        <input name="committer-3" value="ogre0403+3@gmail.com" readonly>
+    </div>
+
+    <div>
+        <label>委員4:</label>
+        <label>BBB:</label>
+        <input name="committer-4" value="ogre0403+4@gmail.com" readonly>
+    </div>
+
+    <div>
+        <label>委員5:</label>
+        <label>CCC:</label>
+        <input name="committer-5" value="ogre0403+5@gmail.com" readonly>
+    </div>
+
+
+    <div>
+        <label>委員6:</label>
+        <label>DDD:</label>
+        <input name="committer-6" value="ogre0403+6@gmail.com" readonly>
+    </div>
+
+
+    <div>
+        <label>委員7:</label>
+        <label>EEE:</label>
+        <input name="committer-7" value="ogre0403+7@gmail.com" readonly>
+    </div>
+
+
+    <div>
+        <label>委員8:</label>
+        <label>FFF:</label>
+        <input name="committer-8" value="ogre0403+8@gmail.com" readonly>
+    </div>
+
+
+    <div>
+        <label>委員9:</label>
+        <label>GGG:</label>
+        <input name="committer-9" value="ogre0403+9@gmail.com" readonly>
+    </div>
+
+
+    <div>
+        <label>第一組彌封密碼:</label>
+        <input type="password" name="password-1" minlength="8" required>
+    </div>
+
+    <div>
+        <label>第二組彌封密碼:</label>
+        <input type="password" name="password-2" minlength="8" required>
+    </div>
+
 <div><input type="submit" value="抽籤"></div>
 </form>

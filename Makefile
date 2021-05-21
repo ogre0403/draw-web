@@ -9,8 +9,7 @@ build:
 	-o bin/${PROJ_NAME} cmd/main.go
 
 run:
-	bin/${PROJ_NAME} -alsologtostderr
-
+	bin/${PROJ_NAME}
 
 build-img:
 	docker build -t $(IMAGE) -f ./Dockerfile .
