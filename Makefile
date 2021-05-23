@@ -6,7 +6,7 @@ IMAGE = $(REGISTRY)/$(PROJ_NAME):$(TAG)
 build:
 	rm -rf bin/${PROJ_NAME}
 	go build -mod=vendor  \
-	-o bin/${PROJ_NAME} cmd/main.go
+	-o bin/${PROJ_NAME} cmd/*.go
 
 run:
 	bin/${PROJ_NAME} -alsologtostderr
@@ -18,11 +18,11 @@ build-in-docker:
 	rm -rf bin/${PROJ_NAME}
 	CGO_ENABLED=0 GOOS=linux \
 	go build -mod=vendor \
-	-o bin/${PROJ_NAME} cmd/main.go
+	-o bin/${PROJ_NAME} cmd/*.go
 
 run-in-docker:
 	docker run --rm -ti -p 8080:8080 $(REGISTRY)/$(PROJ_NAME):$(TAG)
 
 clean:
-	rm *.csv
 	rm -rf bin/
+	rm *.csv

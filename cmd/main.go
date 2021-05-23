@@ -1,23 +1,15 @@
-// Copyright 2010 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"github.com/alexmullins/zip"
 	"github.com/golang/glog"
 	"html/template"
-	"io"
 	"math/rand"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -27,16 +19,48 @@ type Page struct {
 	Password  []string
 }
 
-func (p *Page) save() error {
-
-	// todo: send mail
-
-	for _, v := range p.Password {
-		glog.Info(v)
-	}
+func (p *Page) mail() error {
+	host := "mail.narlabs.org.tw"
+	port := 465
+	email := "1403035@narlabs.org.tw"
+	password := "2021ogRE0403"
 
 	for i, v := range p.Committer {
 		glog.Infof("%d,%s", i+1, v)
+
+		toEmail := v
+		header := make(map[string]string)
+		header["From"] = "工作小組" + "<" + email + ">"
+		header["To"] = toEmail
+		header["Subject"] = "委員編號"
+		header["Content-Type"] = "text/html; charset=UTF-8"
+		body := fmt.Sprintf("委員好，您抽到的號碼為 %d", i+1)
+		message := ""
+		for k, v := range header {
+			message += fmt.Sprintf("%s: %s\r\n", k, v)
+		}
+		message += "\r\n" + body
+		auth := LoginAuth(email, password)
+
+		err := SendMailUsingTLS(
+			fmt.Sprintf("%s:%d", host, port),
+			auth,
+			email,
+			[]string{toEmail},
+			[]byte(message),
+		)
+		if err != nil {
+			glog.Warningf("Send fail to %s fail: %s", toEmail, err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (p *Page) save() error {
+
+	for _, v := range p.Password {
+		glog.Info(v)
 	}
 
 	filename := p.Title + ".csv"
@@ -99,7 +123,13 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 		p.Committer[n] = x
 	}
 
-	err := p.save()
+	err := p.mail()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = p.save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -148,76 +178,4 @@ func main() {
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 	http.HandleFunc("/download/", makeHandler(downloadHandler))
 	glog.Info(http.ListenAndServe(":8080", nil))
-}
-
-func Zip(dst, src, pw string) (err error) {
-	// 创建准备写入的文件
-	fw, err := os.Create(dst)
-	defer fw.Close()
-	if err != nil {
-		return err
-	}
-
-	// 通过 fw 来创建 zip.Write
-	zw := zip.NewWriter(fw)
-	defer func() {
-		// 检测一下是否成功关闭
-		if err := zw.Close(); err != nil {
-			glog.Info(err.Error())
-		}
-	}()
-
-	// 下面来将文件写入 zw ，因为有可能会有很多个目录及文件，所以递归处理
-	return filepath.Walk(src, func(path string, fi os.FileInfo, errBack error) (err error) {
-		if errBack != nil {
-			return errBack
-		}
-
-		// 通过文件信息，创建 zip 的文件信息
-		fh, err := zip.FileInfoHeader(fi)
-		if err != nil {
-			return
-		}
-
-		// 替换文件信息中的文件名
-		fh.Name = strings.TrimPrefix(path, string(filepath.Separator))
-
-		// 这步开始没有加，会发现解压的时候说它不是个目录
-		if fi.IsDir() {
-			fh.Name += "/"
-		}
-
-		if pw != "" {
-			fh.SetPassword(pw)
-		}
-
-		// 写入文件信息，并返回一个 Write 结构
-		w, err := zw.CreateHeader(fh)
-		if err != nil {
-			return
-		}
-
-		// 检测，如果不是标准文件就只写入头信息，不写入文件数据到 w
-		// 如目录，也没有数据需要写
-		if !fh.Mode().IsRegular() {
-			return nil
-		}
-
-		// 打开要压缩的文件
-		fr, err := os.Open(path)
-		defer fr.Close()
-		if err != nil {
-			return
-		}
-
-		// 将打开的文件 Copy 到 w
-		_, err = io.Copy(w, fr)
-		if err != nil {
-			return
-		}
-		// 输出压缩的内容
-		glog.Infof("Create zip file: %s", dst)
-
-		return nil
-	})
 }
