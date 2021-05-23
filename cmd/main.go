@@ -23,7 +23,7 @@ func (p *Page) mail() error {
 	host := "mail.narlabs.org.tw"
 	port := 465
 	email := "1403035@narlabs.org.tw"
-	password := "2021ogRE0403"
+	password := ""
 
 	for i, v := range p.Committer {
 		glog.Infof("%d,%s", i+1, v)
