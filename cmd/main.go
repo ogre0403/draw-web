@@ -23,7 +23,7 @@ func (p *Page) mail() error {
 	host := "mail.narlabs.org.tw"
 	port := 465
 	email := "1403035@narlabs.org.tw"
-	password := ""
+	//password := ""
 
 	for i, v := range p.Committer {
 		glog.Infof("%d,%s", i+1, v)
@@ -40,7 +40,7 @@ func (p *Page) mail() error {
 			message += fmt.Sprintf("%s: %s\r\n", k, v)
 		}
 		message += "\r\n" + body
-		auth := LoginAuth(email, password)
+		auth := LoginAuth(email, mail_password)
 
 		err := SendMailUsingTLS(
 			fmt.Sprintf("%s:%d", host, port),
@@ -171,7 +171,14 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 	}
 }
 
+
+var mail_password string
+
 func main() {
+
+	flag.StringVar(&mail_password, "password", "1234567", "smtp password")
+
+
 	flag.Parse()
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit", editHandler)

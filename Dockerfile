@@ -11,7 +11,7 @@ RUN make build-in-docker
 
 
 FROM alpine:3.7
-
+RUN apk add --no-cache tzdata ca-certificates && update-ca-certificates
 COPY --from=build /draw-web/bin/draw-web /
 COPY template /template
-CMD ["/draw-web", "-alsologtostderr"]
+ENTRYPOINT ["/draw-web"]
