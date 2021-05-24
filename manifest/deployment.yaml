@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: draw-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: draw
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: draw
+    spec:
+      containers:
+        - name: draw
+          image: ogre0403/draw-web:latest
+          args:
+            - -alsologtostderr
+            - -password=
+            - -mail=
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: draw
+  namespace: default
+  labels:
+    app: draw
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      protocol: TCP
+  selector:
+    app: draw
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: draw
+  namespace: default
+spec:
+  rules:
+    - host: draw.140-110-136-74.nip.io
+      http:
+        paths:
+          - backend:
+              serviceName: draw
+              servicePort: 8080
