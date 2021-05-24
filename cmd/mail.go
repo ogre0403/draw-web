@@ -19,26 +19,32 @@ func Dial(addr string) (*smtp.Client, error) {
 	return smtp.NewClient(conn, host)
 }
 
-func SendMailUsingTLS(addr string, auth smtp.Auth, from string,
-	to []string, msg []byte) (err error) {
+func CreateSMTPClient(addr string, auth smtp.Auth, ) (*smtp.Client, error) {
+
 	//create smtp client
 	c, err := Dial(addr)
 	if err != nil {
 		log.Println("Create smpt client error:", err)
-		return err
+		return nil, err
 	}
-	defer c.Close()
+
 	if auth != nil {
 		if ok, _ := c.Extension("AUTH"); ok {
 			if err = c.Auth(auth); err != nil {
 				log.Println("Error during AUTH", err)
-				return err
+				return nil, err
 			}
 		}
 	}
+
+	return c, nil
+}
+
+func SendMailUsingTLS(c *smtp.Client, from string, to []string, msg []byte) (err error) {
 	if err = c.Mail(from); err != nil {
 		return err
 	}
+
 	for _, addr := range to {
 		if err = c.Rcpt(addr); err != nil {
 			return err
@@ -56,7 +62,7 @@ func SendMailUsingTLS(addr string, auth smtp.Auth, from string,
 	if err != nil {
 		return err
 	}
-	return c.Quit()
+	return nil
 }
 
 type loginAuth struct {

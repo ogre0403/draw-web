@@ -24,6 +24,13 @@ func (p *Page) mail() error {
 	host := "mail.narlabs.org.tw"
 	port := 465
 
+	auth := LoginAuth(mail_account, mail_password)
+	c, err := CreateSMTPClient(fmt.Sprintf("%s:%d", host, port), auth)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
 	for i := 0; i < 9; i++ {
 
 		v := p.Committer[i]
@@ -43,17 +50,15 @@ func (p *Page) mail() error {
 			message += fmt.Sprintf("%s: %s\r\n", k, v)
 		}
 		message += "\r\n" + body
-		auth := LoginAuth(mail_account, mail_password)
 
 		err := SendMailUsingTLS(
-			fmt.Sprintf("%s:%d", host, port),
-			auth,
+			c,
 			mail_account,
 			[]string{toEmail},
 			[]byte(message),
 		)
 		if err != nil {
-			glog.Warningf("Send fail to %s fail: %s", toEmail, err.Error())
+			glog.Warningf("Send to %s fail: %s", toEmail, err.Error())
 		}
 	}
 
