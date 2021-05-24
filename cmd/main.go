@@ -17,15 +17,19 @@ type Page struct {
 	Title     string
 	Committer []string
 	Password  []string
+	Name      []string
 }
 
 func (p *Page) mail() error {
 	host := "mail.narlabs.org.tw"
 	port := 465
 	email := "1403035@narlabs.org.tw"
-	//password := ""
 
-	for i, v := range p.Committer {
+	for i := 0; i < 9; i++ {
+
+		v := p.Committer[i]
+		n := p.Name[i]
+
 		glog.Infof("%d,%s", i+1, v)
 
 		toEmail := v
@@ -34,7 +38,7 @@ func (p *Page) mail() error {
 		header["To"] = toEmail
 		header["Subject"] = "委員編號"
 		header["Content-Type"] = "text/html; charset=UTF-8"
-		body := fmt.Sprintf("委員好，您抽到的號碼為 %d", i+1)
+		body := fmt.Sprintf("%s 委員好，您抽到的號碼為 %d", n, i+1)
 		message := ""
 		for k, v := range header {
 			message += fmt.Sprintf("%s: %s\r\n", k, v)
@@ -106,7 +110,9 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 
 	for i := 0; i < 9; i++ {
 		c := r.FormValue(fmt.Sprintf("committer-%d", i+1))
+		n := r.FormValue(fmt.Sprintf("name-%d", i+1))
 		p.Committer = append(p.Committer, c)
+		p.Name = append(p.Name, n)
 	}
 	for i := 0; i < 2; i++ {
 		c := r.FormValue(fmt.Sprintf("password-%d", i+1))
@@ -121,6 +127,10 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 		x := p.Committer[i]
 		p.Committer[i] = p.Committer[n]
 		p.Committer[n] = x
+
+		y := p.Name[i]
+		p.Name[i] = p.Name[n]
+		p.Name[n] = y
 	}
 
 	err := p.mail()
@@ -158,7 +168,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	}
 }
 
-var validPath = regexp.MustCompile("^/(edit|save|view|download)/([a-zA-Z0-9]+)$")
+var validPath = regexp.MustCompile("^/(save|view|download)/([a-zA-Z0-9]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -171,17 +181,15 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 	}
 }
 
-
 var mail_password string
 
 func main() {
 
 	flag.StringVar(&mail_password, "password", "1234567", "smtp password")
 
-
 	flag.Parse()
 	http.HandleFunc("/view/", makeHandler(viewHandler))
-	http.HandleFunc("/edit", editHandler)
+	http.HandleFunc("/", editHandler)
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 	http.HandleFunc("/download/", makeHandler(downloadHandler))
 	glog.Info(http.ListenAndServe(":8080", nil))
