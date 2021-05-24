@@ -23,7 +23,6 @@ type Page struct {
 func (p *Page) mail() error {
 	host := "mail.narlabs.org.tw"
 	port := 465
-	email := "1403035@narlabs.org.tw"
 
 	for i := 0; i < 9; i++ {
 
@@ -34,22 +33,22 @@ func (p *Page) mail() error {
 
 		toEmail := v
 		header := make(map[string]string)
-		header["From"] = "工作小組" + "<" + email + ">"
+		header["From"] = "工作小組" + "<" + mail_account + ">"
 		header["To"] = toEmail
 		header["Subject"] = "委員編號"
 		header["Content-Type"] = "text/html; charset=UTF-8"
-		body := fmt.Sprintf("%s 委員好，您抽到的號碼為 %d", n, i+1)
+		body := fmt.Sprintf("%s 委員好: <br>您抽到的號碼為 %d。<br><br>工作小組", n, i+1)
 		message := ""
 		for k, v := range header {
 			message += fmt.Sprintf("%s: %s\r\n", k, v)
 		}
 		message += "\r\n" + body
-		auth := LoginAuth(email, mail_password)
+		auth := LoginAuth(mail_account, mail_password)
 
 		err := SendMailUsingTLS(
 			fmt.Sprintf("%s:%d", host, port),
 			auth,
-			email,
+			mail_account,
 			[]string{toEmail},
 			[]byte(message),
 		)
@@ -182,10 +181,12 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 }
 
 var mail_password string
+var mail_account string
 
 func main() {
 
 	flag.StringVar(&mail_password, "password", "1234567", "smtp password")
+	flag.StringVar(&mail_account, "mail", "abc@test.com", "smtp mail account")
 
 	flag.Parse()
 	http.HandleFunc("/view/", makeHandler(viewHandler))

@@ -9,7 +9,7 @@ build:
 	-o bin/${PROJ_NAME} cmd/*.go
 
 run:
-	bin/${PROJ_NAME} -alsologtostderr -password=${PASSWORD}
+	bin/${PROJ_NAME} -alsologtostderr -password=${PASSWORD} -mail=${MAIL}
 
 build-img:
 	docker build -t $(IMAGE) -f ./Dockerfile .
